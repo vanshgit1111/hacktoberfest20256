@@ -1,11 +1,14 @@
 // Ultimate Tic-Tac-Toe Game in C++
+// Enhanced with colors, score tracking, and improved user interface
 
-// Description:
-// Implements an advanced version of Tic-Tac-Toe where each cell of a big 3×3 grid
-// contains another 3×3 Tic-Tac-Toe board. The first player can play anywhere,
-// while the second player must play in the sub-board corresponding to the previous move.
-// The winner of each small board marks that position on the big board.
-// The game ends when a player wins the big board or all boards are full.
+#include <iostream>
+#include <vector>
+#include <limits>
+#include <string>
+#include <chrono>
+#include <thread>
+
+// --- Constants ---
 
 // Algorithm:
 // 1. Initialize a 4D board representing 9 small 3×3 boards inside a big 3×3 board.
@@ -29,80 +32,72 @@ const char PLAYER_X = 'X';
 const char PLAYER_O = 'O';
 const char EMPTY = ' ';
 
+// ANSI Color Codes for better visualization
+const std::string RESET = "\033[0m";
+const std::string RED = "\033[31m";
+const std::string GREEN = "\033[32m";
+const std::string YELLOW = "\033[33m";
+const std::string BLUE = "\033[34m";
+const std::string MAGENTA = "\033[35m";
+const std::string CYAN = "\033[36m";
+
+// Score tracking
+struct GameScore {
+    int playerX;
+    int playerO;
+    int draws;
+    GameScore() : playerX(0), playerO(0), draws(0) {}
+};
+
 // --- Function Prototypes ---
-void printBoard(const std::vector<std::vector<std::vector<std::vector<char>>>>& boards);
+void printBoard(const std::vector<std::vector<std::vector<std::vector<char>>>>& boards,
+               const std::vector<std::vector<char>>& bigBoardState);
 bool checkWin(const std::vector<std::vector<char>>& board, char player);
 bool isBoardFull(const std::vector<std::vector<char>>& board);
+void clearScreen();
+void displayGameStatus(char currentPlayer, int bigRow, int bigCol, const GameScore& score);
+bool getValidMove(int& boardRow, int& boardCol, int& row, int& col, 
+                 int bigRow, int bigCol, 
+                 const std::vector<std::vector<std::vector<std::vector<char>>>>& gameBoards,
+                 const std::vector<std::vector<char>>& bigBoardState);
+void displayWelcomeMessage();
+void pause(int milliseconds);
+bool playAgain();
 
 int main() {
-    // A 4D vector to represent the game:
-    // [big_board_row][big_board_col][small_board_row][small_board_col]
-    std::vector<std::vector<std::vector<std::vector<char>>>> gameBoards(3, std::vector<std::vector<std::vector<char>>>(3, std::vector<std::vector<char>>(3, std::vector<char>(3, EMPTY))));
+    GameScore score;
+    bool continuePlaying = true;
 
-    // A 2D vector to track the state of the big board (who won each smaller board)
-    std::vector<std::vector<char>> bigBoardState(3, std::vector<char>(3, EMPTY));
+    while (continuePlaying) {
+        // Initialize game boards
+        std::vector<std::vector<std::vector<std::vector<char>>>> gameBoards(3, 
+            std::vector<std::vector<std::vector<char>>>(3, 
+            std::vector<std::vector<char>>(3, 
+            std::vector<char>(3, EMPTY))));
 
-    char currentPlayer = PLAYER_X;
-    int bigRow = -1; // -1 indicates the first player has free choice
-    int bigCol = -1;
-    bool gameOver = false;
-    char winner = EMPTY;
+        std::vector<std::vector<char>> bigBoardState(3, std::vector<char>(3, EMPTY));
 
-    std::cout << "Welcome to Ultimate Tic-Tac-Toe!" << std::endl;
-    std::cout << "Player X goes first." << std::endl;
+        char currentPlayer = PLAYER_X;
+        int bigRow = -1; // -1 indicates free choice
+        int bigCol = -1;
+        bool gameOver = false;
+        char winner = EMPTY;
+
+        displayWelcomeMessage();
+        pause(2000); // 2-second pause
+        clearScreen();
 
     while (!gameOver) {
-        printBoard(gameBoards);
+            clearScreen();
+            printBoard(gameBoards, bigBoardState);
+            displayGameStatus(currentPlayer, bigRow, bigCol, score);
 
-        std::cout << "Player " << currentPlayer << "'s turn." << std::endl;
-
-        // If the next move is restricted to a specific sub-board
-        if (bigRow != -1 && bigBoardState[bigRow][bigCol] == EMPTY) {
-            std::cout << "You must play on the board at (" << bigRow << ", " << bigCol << ")." << std::endl;
-        } else {
-            std::cout << "You can play on any available board." << std::endl;
-            bigRow = -1; // Reset to allow free choice
-            bigCol = -1;
-        }
-
-        int row, col, boardRow, boardCol;
-        bool validMove = false;
-
-        while (!validMove) {
-            std::cout << "Enter your move (big_board_row big_board_col small_board_row small_board_col): ";
-            std::cin >> boardRow >> boardCol >> row >> col;
-
-            // Check if coordinates are within the board boundaries
-            if (boardRow < 0 || boardRow > 2 || boardCol < 0 || boardCol > 2 || row < 0 || row > 2 || col < 0 || col > 2) {
-                std::cout << "Invalid coordinates. Please try again." << std::endl;
+            int row, col, boardRow, boardCol;
+            if (!getValidMove(boardRow, boardCol, row, col, bigRow, bigCol, gameBoards, bigBoardState)) {
                 continue;
             }
 
-            // Check if the move is on the correct board
-            if (bigRow != -1 && (boardRow != bigRow || boardCol != bigCol)) {
-                std::cout << "Invalid move. You must play on the designated board." << std::endl;
-                continue;
-            }
-
-            // Check if the chosen board is already won
-            if (bigBoardState[boardRow][boardCol] != EMPTY) {
-                std::cout << "This board is already won. Please choose a different one." << std::endl;
-                // Since the board is won, the next player gets a free choice
-                if (bigRow != -1) {
-                    bigRow = -1;
-                    bigCol = -1;
-                }
-                continue;
-            }
-
-            // Check if the specific spot is already taken
-            if (gameBoards[boardRow][boardCol][row][col] != EMPTY) {
-                std::cout << "This spot is already taken. Please try again." << std::endl;
-                continue;
-            }
-
-            // All checks passed, the move is valid
-            validMove = true;
+            // Make the move
             gameBoards[boardRow][boardCol][row][col] = currentPlayer;
 
             // Update the next player's required board
@@ -110,64 +105,189 @@ int main() {
             bigCol = col;
         }
 
-        // Check if the current move won the small board
-        if (checkWin(gameBoards[boardRow][boardCol], currentPlayer)) {
-            bigBoardState[boardRow][boardCol] = currentPlayer;
-        } else if (isBoardFull(gameBoards[boardRow][boardCol])) {
-            bigBoardState[boardRow][boardCol] = 'D'; // 'D' for Draw
-        }
-        
-        // Check if the current move won the entire game on the big board
-        if (checkWin(bigBoardState, currentPlayer)) {
-            winner = currentPlayer;
-            gameOver = true;
+            // Check if the current move won the small board
+            if (checkWin(gameBoards[boardRow][boardCol], currentPlayer)) {
+                bigBoardState[boardRow][boardCol] = currentPlayer;
+                std::cout << CYAN << "\nPlayer " << currentPlayer << " wins the small board at position ("
+                         << boardRow << "," << boardCol << ")!" << RESET << std::endl;
+                pause(1500);
+            } else if (isBoardFull(gameBoards[boardRow][boardCol])) {
+                bigBoardState[boardRow][boardCol] = 'D'; // 'D' for Draw
+            }
+            
+            // Check if the current move won the entire game
+            if (checkWin(bigBoardState, currentPlayer)) {
+                winner = currentPlayer;
+                gameOver = true;
+            } else if (isBoardFull(bigBoardState)) {
+                gameOver = true;
+            }
+
+            // Switch players if game is not over
+            if (!gameOver) {
+                currentPlayer = (currentPlayer == PLAYER_X) ? PLAYER_O : PLAYER_X;
+            }
         }
 
-        // Check for a draw on the big board
-        if (isBoardFull(bigBoardState) && !gameOver) {
-            gameOver = true;
+        clearScreen();
+        printBoard(gameBoards, bigBoardState);
+
+        // Update scores and display results
+        if (winner != EMPTY) {
+            if (winner == PLAYER_X) score.playerX++;
+            else score.playerO++;
+            std::cout << GREEN << "\n🎉 Congratulations! Player " << winner << " wins the game! 🎉" << RESET << std::endl;
+        } else {
+            score.draws++;
+            std::cout << YELLOW << "\n🤝 The game is a draw! 🤝" << RESET << std::endl;
         }
 
-        // Switch players
-        if (!gameOver) {
-            currentPlayer = (currentPlayer == PLAYER_X) ? PLAYER_O : PLAYER_X;
-        }
-    }
+        // Display final scores
+        std::cout << MAGENTA << "\nScore Board:" << RESET << std::endl;
+        std::cout << "Player X: " << score.playerX << " wins" << std::endl;
+        std::cout << "Player O: " << score.playerO << " wins" << std::endl;
+        std::cout << "Draws: " << score.draws << std::endl;
 
-    printBoard(gameBoards);
-
-    if (winner != EMPTY) {
-        std::cout << "Congratulations, Player " << winner << " wins the game!" << std::endl;
-    } else {
-        std::cout << "The game is a draw!" << std::endl;
+        continuePlaying = playAgain();
     }
 
     return 0;
 }
 
-// Function to print the entire Ultimate Tic-Tac-Toe board
-void printBoard(const std::vector<std::vector<std::vector<std::vector<char>>>>& boards) {
-    // Print column numbers
-    std::cout << "    0   1   2       0   1   2       0   1   2" << std::endl;
-    std::cout << "  +---+---+---+   +---+---+---+   +---+---+---+" << std::endl;
+void displayWelcomeMessage() {
+    std::cout << CYAN << R"(
+    ╔═══════════════════════════════════════╗
+    ║     Ultimate Tic-Tac-Toe Game         ║
+    ║     Enhanced Edition v2.0             ║
+    ╚═══════════════════════════════════════╝)" << RESET << std::endl;
+    
+    std::cout << YELLOW << "\nGame Rules:" << RESET << std::endl;
+    std::cout << "1. The game consists of 9 small Tic-Tac-Toe boards within one big board" << std::endl;
+    std::cout << "2. Win three small boards in a row to win the game" << std::endl;
+    std::cout << "3. Your move determines which board your opponent must play in next" << std::endl;
+    std::cout << "4. If sent to a completed board, your opponent can play anywhere" << std::endl;
+}
 
-    for (int bigRow = 0; bigRow < 3; ++bigRow) {
-        for (int smallRow = 0; smallRow < 3; ++smallRow) {
-            // Print row numbers
-            std::cout << bigRow * 3 + smallRow << " |";
-            for (int bigCol = 0; bigCol < 3; ++bigCol) {
-                for (int smallCol = 0; smallCol < 3; ++smallCol) {
-                    std::cout << " " << boards[bigRow][bigCol][smallRow][smallCol] << " |";
-                }
-                std::cout << "   |";
-            }
-            std::cout << std::endl;
-            std::cout << "  +---+---+---+   +---+---+---+   +---+---+---+" << std::endl;
-        }
+void clearScreen() {
+    #ifdef _WIN32
+        system("cls");
+    #else
+        system("clear");
+    #endif
+}
+
+void pause(int milliseconds) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
+}
+
+void displayGameStatus(char currentPlayer, int bigRow, int bigCol, const GameScore& score) {
+    std::cout << "\nCurrent Scores - X: " << score.playerX << " | O: " << score.playerO 
+              << " | Draws: " << score.draws << std::endl;
+    
+    std::cout << GREEN << "\nPlayer " << currentPlayer << "'s turn" << RESET << std::endl;
+
+    if (bigRow != -1 && bigCol != -1) {
+        std::cout << "You must play in board at position (" << bigRow << "," << bigCol << ")" << std::endl;
+    } else {
+        std::cout << "You can play in any available board" << std::endl;
     }
 }
 
-// Function to check for a win on a single 3x3 board
+// Function to print the entire Ultimate Tic-Tac-Toe board
+void printBoard(const std::vector<std::vector<std::vector<std::vector<char>>>>& boards,
+               const std::vector<std::vector<char>>& bigBoardState) {
+    std::cout << "    0   1   2       0   1   2       0   1   2\n";
+    std::cout << "  +---+---+---+   +---+---+---+   +---+---+---+\n";
+
+    for (int bigRow = 0; bigRow < 3; ++bigRow) {
+        for (int smallRow = 0; smallRow < 3; ++smallRow) {
+            std::cout << bigRow * 3 + smallRow << " |";
+            for (int bigCol = 0; bigCol < 3; ++bigCol) {
+                for (int smallCol = 0; smallCol < 3; ++smallCol) {
+                    char symbol = boards[bigRow][bigCol][smallRow][smallCol];
+                    if (symbol == PLAYER_X)
+                        std::cout << " " << BLUE << symbol << RESET << " |";
+                    else if (symbol == PLAYER_O)
+                        std::cout << " " << RED << symbol << RESET << " |";
+                    else
+                        std::cout << " " << symbol << " |";
+                }
+                if (bigCol < 2) std::cout << "   |";
+            }
+            std::cout << "\n  +---+---+---+   +---+---+---+   +---+---+---+\n";
+        }
+        if (bigRow < 2) {
+            std::cout << "  +---+---+---+   +---+---+---+   +---+---+---+\n";
+        }
+    }
+
+    // Display big board state
+    std::cout << "\nBig Board State:\n";
+    std::cout << "+-+-+-+\n";
+    for (int i = 0; i < 3; ++i) {
+        std::cout << "|";
+        for (int j = 0; j < 3; ++j) {
+            if (bigBoardState[i][j] == PLAYER_X)
+                std::cout << BLUE << bigBoardState[i][j] << RESET;
+            else if (bigBoardState[i][j] == PLAYER_O)
+                std::cout << RED << bigBoardState[i][j] << RESET;
+            else if (bigBoardState[i][j] == 'D')
+                std::cout << YELLOW << "D" << RESET;
+            else
+                std::cout << " ";
+            std::cout << "|";
+        }
+        std::cout << "\n+-+-+-+\n";
+    }
+}
+
+bool getValidMove(int& boardRow, int& boardCol, int& row, int& col, 
+                 int bigRow, int bigCol,
+                 const std::vector<std::vector<std::vector<std::vector<char>>>>& gameBoards,
+                 const std::vector<std::vector<char>>& bigBoardState) {
+    
+    std::cout << "\nEnter your move (big_board_row big_board_col small_board_row small_board_col): ";
+    
+    if (!(std::cin >> boardRow >> boardCol >> row >> col)) {
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        std::cout << RED << "Invalid input. Please enter numbers only." << RESET << std::endl;
+        pause(1500);
+        return false;
+    }
+
+    // Validate coordinates
+    if (boardRow < 0 || boardRow > 2 || boardCol < 0 || boardCol > 2 || 
+        row < 0 || row > 2 || col < 0 || col > 2) {
+        std::cout << RED << "Invalid coordinates. Must be between 0 and 2." << RESET << std::endl;
+        pause(1500);
+        return false;
+    }
+
+    // Check if the move is on the correct board
+    if (bigRow != -1 && bigCol != -1 && (boardRow != bigRow || boardCol != bigCol)) {
+        std::cout << RED << "You must play in the designated board!" << RESET << std::endl;
+        pause(1500);
+        return false;
+    }
+
+    // Check if the chosen board is already won
+    if (bigBoardState[boardRow][boardCol] != EMPTY) {
+        std::cout << RED << "This board is already completed. Choose another." << RESET << std::endl;
+        pause(1500);
+        return false;
+    }
+
+    // Check if the spot is already taken
+    if (gameBoards[boardRow][boardCol][row][col] != EMPTY) {
+        std::cout << RED << "This spot is already taken!" << RESET << std::endl;
+        pause(1500);
+        return false;
+    }
+
+    return true;
+}
+
 bool checkWin(const std::vector<std::vector<char>>& board, char player) {
     // Check rows and columns
     for (int i = 0; i < 3; ++i) {
@@ -177,21 +297,22 @@ bool checkWin(const std::vector<std::vector<char>>& board, char player) {
         }
     }
     // Check diagonals
-    if ((board[0][0] == player && board[1][1] == player && board[2][2] == player) ||
-        (board[0][2] == player && board[1][1] == player && board[2][0] == player)) {
-        return true;
-    }
-    return false;
+    return (board[0][0] == player && board[1][1] == player && board[2][2] == player) ||
+           (board[0][2] == player && board[1][1] == player && board[2][0] == player);
 }
 
-// Function to check if a single 3x3 board is full
 bool isBoardFull(const std::vector<std::vector<char>>& board) {
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
-            if (board[i][j] == EMPTY) {
-                return false;
-            }
+    for (const auto& row : board) {
+        for (char cell : row) {
+            if (cell == EMPTY) return false;
         }
     }
     return true;
+}
+
+bool playAgain() {
+    char response;
+    std::cout << "\nWould you like to play again? (y/n): ";
+    std::cin >> response;
+    return (response == 'y' || response == 'Y');
 }
