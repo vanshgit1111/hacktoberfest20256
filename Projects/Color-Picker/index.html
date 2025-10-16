@@ -5,27 +5,81 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Color Picker</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #f4f4f9;
-      padding: 50px;
-    }
-    h1 {
-      margin-bottom: 20px;
-    }
-    #colorBox {
-      width: 200px;
-      height: 200px;
-      margin: 20px auto;
-      border-radius: 10px;
-      border: 2px solid #333;
-    }
-    #hexValue {
-      font-size: 18px;
-      margin-top: 10px;
-      font-weight: bold;
-    }
+   <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Color Picker</title>
+  <style>
+  body {
+  font-family: 'Poppins', sans-serif;
+  text-align: center;
+  background: linear-gradient(135deg, #f8f9fa, #e3f2fd);
+  padding: 50px;
+  min-height: 100vh;
+}
+
+h1 {
+  color: #2c3e50;
+  margin-bottom: 25px;
+  font-size: 2rem;
+  letter-spacing: 1px;
+}
+
+#colorPicker {
+  width: 80px;
+  height: 80px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+#colorPicker:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+#colorBox {
+  width: 220px;
+  height: 220px;
+  margin: 30px auto 15px;
+  border-radius: 20px;
+  border: 3px solid #333;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  transition: background 0.3s ease;
+}
+
+#hexValue {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #333;
+  background: #fff;
+  padding: 8px 18px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  display: inline-block;
+}
+
+footer {
+  margin-top: 40px;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+  </style>
+</head>
+<body>
+  <h1>🎨 Color Picker 🎨</h1>
+  <input type="color" id="colorPicker" value="#3498db" />
+  <div id="colorBox"></div>
+  <p id="hexValue">#3498db</p>
+  <script src="./script.js"></script>
+</body>
+</html>
+
   </style>
 </head>
 <body>
