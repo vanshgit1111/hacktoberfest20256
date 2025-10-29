@@ -1,0 +1,23 @@
+l,r,a=map(int,input().split())
+b=a
+count=0
+if l==r:
+    print(l+r+(a//2)*2)
+else:
+    x =min(l,r)
+    z=max(l,r)
+    while  a>0:
+        x+=1
+        count+=1
+        a-=1
+        if x==z:
+            a=0
+    y=x
+    if y==z :
+        if (b-count)%2==0:
+            print(2*y + (b-count))
+        else:
+            print(2*y+((b-count)//2)*2)
+    
+    else:
+        print(2*(min(y,z)))
